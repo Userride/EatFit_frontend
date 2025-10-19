@@ -44,12 +44,12 @@ export default function MyCart() {
     e.preventDefault();
     if (!address || !paymentMethod) return alert('Fill all fields');
 
-    const orderData = {
-      userId: 'user123',
-      cartItems,
-      address,
-      paymentMethod
-    };
+   const orderData = {
+  userId: '6663dea9247e2d518ab8dd33', // <-- valid MongoDB ObjectId
+  cartItems,
+  address,
+  paymentMethod
+};
 
     try {
       const res = await axios.post('https://eatfit-ecwm.onrender.com/api/orders/createOrder', orderData);
