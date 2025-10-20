@@ -1,12 +1,13 @@
-
 import React, { useEffect, useState } from 'react';
-import io from 'socket.io-client';
+import { io } from 'socket.io-client';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
 
-const socket = io('https://eatfit-ecwm.onrender.com');
+// Connect socket with credentials
+const socket = io('https://eatfit-ecwm.onrender.com', {
+  withCredentials: true
+});
 
-// Static hotel coordinates (B-14, Kalyani City)
 const hotelCoords = { lat: 22.9753, lon: 88.4345 };
 
 export default function OrderTracking() {
@@ -16,34 +17,38 @@ export default function OrderTracking() {
   const [distance, setDistance] = useState(null);
 
   // Fetch order details
-useEffect(() => {
-  const fetchOrder = async () => {
-    try {
-      // Make sure /api/orders is included
-      const res = await axios.get(`https://eatfit-ecwm.onrender.com/api/orders/${orderId}`);
-      console.log('Fetched order:', res.data); // Debug log
-      setOrder(res.data.order);
-      setStatus(res.data.order.status);
+  useEffect(() => {
+    const fetchOrder = async () => {
+      try {
+        const res = await axios.get(
+          `https://eatfit-ecwm.onrender.com/api/orders/${orderId}`,
+          { withCredentials: true } // ✅ important
+        );
+        console.log('Fetched order:', res.data);
+        setOrder(res.data.order);
+        setStatus(res.data.order.status);
 
-      // Calculate distance from hotel
-      if (navigator.geolocation) {
-        navigator.geolocation.watchPosition((pos) => {
-          const userCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-          const km = getDistanceFromLatLonInKm(userCoords.lat, userCoords.lon, hotelCoords.lat, hotelCoords.lon);
-          setDistance(km.toFixed(2));
-        });
+        // Track user location
+        if (navigator.geolocation) {
+          navigator.geolocation.watchPosition((pos) => {
+            const userCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+            const km = getDistanceFromLatLonInKm(
+              userCoords.lat, userCoords.lon,
+              hotelCoords.lat, hotelCoords.lon
+            );
+            setDistance(km.toFixed(2));
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching order:', err);
+        setStatus('Unable to fetch order details.');
       }
-    } catch (err) {
-      console.error('Error fetching order:', err);
-      setStatus('Unable to fetch order details.');
-    }
-  };
+    };
 
-  fetchOrder();
-}, [orderId]);
+    fetchOrder();
+  }, [orderId]);
 
-
-  // Listen for live order status updates
+  // Listen for live status updates
   useEffect(() => {
     socket.emit('join_order', orderId);
     socket.on('orderStatusUpdate', (data) => {
@@ -52,9 +57,8 @@ useEffect(() => {
     return () => socket.off('orderStatusUpdate');
   }, [orderId]);
 
-  // Haversine formula
   const getDistanceFromLatLonInKm = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // km
+    const R = 6371;
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
     const a =
@@ -72,10 +76,7 @@ useEffect(() => {
       <h2>🚚 Track Your Order</h2>
       <p><strong>Order ID:</strong> {orderId}</p>
       <p><strong>Status:</strong> <span style={{ color: '#00ff00' }}>{status}</span></p>
-
-      {distance && (
-        <p><strong>Distance to Hotel:</strong> <span style={{ color: '#ffd700' }}>{distance} km</span></p>
-      )}
+      {distance && <p><strong>Distance to Hotel:</strong> <span style={{ color: '#ffd700' }}>{distance} km</span></p>}
 
       {order && (
         <div style={{ textAlign: 'left', marginTop: '20px', backgroundColor: '#222', padding: '15px', borderRadius: '10px' }}>
