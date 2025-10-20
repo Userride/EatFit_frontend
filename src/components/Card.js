@@ -1,21 +1,31 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useDispatchCart, useCart } from './ContextReducer'; // If using context for global state
+import { useDispatchCart, useCart } from './ContextReducer';
+import { useNavigate } from 'react-router-dom';
 
 const ADD = "ADD";
 
 export default function Card(props) {
-  let dispatch = useDispatchCart(); // Dispatch function for context
-  let data = useCart(); // Cart data from context
+  const dispatch = useDispatchCart();
+  const data = useCart();
+  const navigate = useNavigate();
+
   const priceRef = useRef();
   let options = props.options;
   let priceOptions = Object.keys(options);
+
   const [qty, setQty] = useState("1");
   const [size, setSize] = useState("");
 
   const handleAddToCart = () => {
+    // ✅ If user not logged in, redirect to login page
+    if (!localStorage.getItem("authToken")) {
+      alert("Please log in to add items to your cart.");
+      navigate("/loginuser");
+      return;
+    }
+
     let finalPrice = qty * parseInt(options[size]);
 
-    // Save cart data in localStorage or Context
     const cartItem = {
       id: props.foodItem._id,
       name: props.foodItem.name,
@@ -24,13 +34,20 @@ export default function Card(props) {
       size: size,
     };
 
-    // Save cart item in localStorage (or use dispatch for global state)
+    // Save cart data to localStorage
     const existingCart = JSON.parse(localStorage.getItem("cart")) || [];
     existingCart.push(cartItem);
     localStorage.setItem("cart", JSON.stringify(existingCart));
 
-    // If using context
-    dispatch({ type: ADD, id: props.foodItem._id, name: props.foodItem.name, price: finalPrice, qty: qty, size: size });
+    // Also update global context (if used)
+    dispatch({
+      type: ADD,
+      id: props.foodItem._id,
+      name: props.foodItem.name,
+      price: finalPrice,
+      qty: qty,
+      size: size,
+    });
 
     alert("Item added to cart!");
   };
@@ -60,14 +77,16 @@ export default function Card(props) {
               ))}
             </select>
             <select className="m-2 h-100 bg-success rounded" ref={priceRef} onChange={(e) => setSize(e.target.value)}>
-              {priceOptions.map((data) => {
-                return <option key={data} value={data}>{data}</option>;
-              })}
+              {priceOptions.map((data) => (
+                <option key={data} value={data}>{data}</option>
+              ))}
             </select>
             <div className="d-inline h-100 fs-5">Rs {qty * parseInt(options[size])}/-</div>
           </div>
           <hr />
-          <button className={'btn btn-success justify-center ms-2'} onClick={handleAddToCart}>Add to cart</button>
+          <button className="btn btn-success justify-center ms-2" onClick={handleAddToCart}>
+            Add to cart
+          </button>
         </div>
       </div>
     </div>
