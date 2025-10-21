@@ -13,7 +13,7 @@ export default function MyOrders() {
     // Redirect to login if user not found
     if (!user?._id) {
       console.warn("User not logged in. Redirecting to login page.");
-      navigate('/login');
+      navigate('/loginuser');
       return;
     }
 
