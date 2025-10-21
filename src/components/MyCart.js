@@ -1,30 +1,24 @@
 import React, { useEffect, useState } from 'react';
+import { useCart, useDispatchCart } from './ContextReducer';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import io from 'socket.io-client';
-import { useNavigate } from 'react-router-dom';
 
 const socket = io('https://eatfit-ecwm.onrender.com');
 
-// Static hotel coordinates for B-14, Kalyani City
-const hotelCoords = { lat: 22.9753, lon: 88.4345 }; // Replace with exact lat/lon
+// Hotel coordinates
+const hotelCoords = { lat: 22.9753, lon: 88.4345 };
 
 export default function MyCart() {
-  const [cartItems, setCartItems] = useState([]);
+  const cartItems = useCart(); // get cart from context
+  const dispatch = useDispatchCart();
   const [address, setAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [orderId, setOrderId] = useState(null);
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
   const [orderStatus, setOrderStatus] = useState('');
   const [distance, setDistance] = useState(null);
-
   const navigate = useNavigate();
-
-  // Load cart from localStorage and filter invalid items
-  useEffect(() => {
-    const cartData = JSON.parse(localStorage.getItem('cart')) || [];
-    const validItems = cartData.filter(item => item && item.price != null && item.qty != null);
-    setCartItems(validItems);
-  }, []);
 
   // Socket listener for order status updates
   useEffect(() => {
@@ -39,18 +33,17 @@ export default function MyCart() {
 
   // Delete item from cart
   const handleDelete = (id) => {
-    const updated = cartItems.filter((item) => item.id !== id);
-    setCartItems(updated);
-    localStorage.setItem('cart', JSON.stringify(updated));
+    dispatch({ type: "REMOVE", id });
   };
 
   // Place order
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!address || !paymentMethod) return alert('Fill all fields');
+    if (cartItems.length === 0) return alert('Cart is empty');
 
     const orderData = {
-      userId: '6663dea9247e2d518ab8dd33', // Replace with logged-in user ID
+      userId: '6663dea9247e2d518ab8dd33', // replace with logged-in user ID
       cartItems,
       address,
       paymentMethod
@@ -62,7 +55,7 @@ export default function MyCart() {
       setOrderStatus('Order Placed');
       setIsOrderPlaced(true);
 
-      // Get user location and calculate distance
+      // Calculate distance
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition((pos) => {
           const userCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
@@ -93,11 +86,8 @@ export default function MyCart() {
 
   const deg2rad = (deg) => deg * (Math.PI / 180);
 
-  // Total price (safe)
-  const totalPrice = cartItems.reduce(
-    (sum, item) => sum + (item?.price || 0) * (item?.qty || 0),
-    0
-  );
+  // Total price
+  const totalPrice = cartItems.reduce((sum, item) => sum + (item?.price || 0) * (item?.qty || 0), 0);
 
   return (
     <div className="container mt-4">
@@ -117,12 +107,12 @@ export default function MyCart() {
             </tr>
           </thead>
           <tbody>
-            {cartItems.map((item, i) => item && (
+            {cartItems.map((item, i) => (
               <tr key={i}>
                 <td>{item.name}</td>
                 <td>{item.qty}</td>
                 <td>{item.size}</td>
-                <td>₹{item.price * item.qty}</td>
+                <td>₹{item.price}</td>
                 <td>
                   <button onClick={() => handleDelete(item.id)} className="btn btn-danger">
                     Delete
