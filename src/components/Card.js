@@ -23,7 +23,9 @@ export default function Card(props) {
       return;
     }
 
-    let finalPrice = qty * parseInt(options[size]);
+    const finalPrice = qty * parseInt(options[size]);
+
+    // ✅ Create new item
     const newItem = {
       id: props.foodItem._id,
       name: props.foodItem.name,
@@ -33,7 +35,22 @@ export default function Card(props) {
       img: props.foodItem.img
     };
 
-    dispatch({ type: ADD, item: newItem });
+    // ✅ Dispatch matches reducer structure
+    dispatch({
+      type: ADD,
+      id: newItem.id,
+      name: newItem.name,
+      qty: newItem.qty,
+      size: newItem.size,
+      price: newItem.price,
+      img: newItem.img
+    });
+
+    // ✅ Update localStorage (for persistence)
+    const existingCart = JSON.parse(localStorage.getItem("cart")) || [];
+    existingCart.push(newItem);
+    localStorage.setItem("cart", JSON.stringify(existingCart));
+
     alert("Item added to cart!");
   };
 
@@ -44,7 +61,12 @@ export default function Card(props) {
   return (
     <div>
       <div className="card mt-3" style={{ width: '19rem', maxHeight: '400px' }}>
-        <img src={props.foodItem.img} className="card-img-top" style={{ height: '175px', objectFit: 'fill' }} alt="food" />
+        <img
+          src={props.foodItem.img}
+          className="card-img-top"
+          style={{ height: '175px', objectFit: 'fill' }}
+          alt="food"
+        />
         <div className="card-body">
           <h5 className="card-title">{props.foodItem.name}</h5>
           <div className="container w-100">
@@ -53,12 +75,18 @@ export default function Card(props) {
                 <option key={i + 1} value={i + 1}>{i + 1}</option>
               ))}
             </select>
-            <select className="m-2 h-100 bg-success rounded" ref={priceRef} onChange={(e) => setSize(e.target.value)}>
+            <select
+              className="m-2 h-100 bg-success rounded"
+              ref={priceRef}
+              onChange={(e) => setSize(e.target.value)}
+            >
               {priceOptions.map((data) => (
                 <option key={data} value={data}>{data}</option>
               ))}
             </select>
-            <div className="d-inline h-100 fs-5">Rs {qty * parseInt(options[size])}/-</div>
+            <div className="d-inline h-100 fs-5">
+              Rs {qty * parseInt(options[size])}/-
+            </div>
           </div>
           <hr />
           <button className="btn btn-success justify-center ms-2" onClick={handleAddToCart}>
