@@ -10,14 +10,13 @@ export default function Card(props) {
   const navigate = useNavigate();
 
   const priceRef = useRef();
-  let options = props.options;
-  let priceOptions = Object.keys(options);
+  const options = props.options;
+  const priceOptions = Object.keys(options);
 
   const [qty, setQty] = useState("1");
   const [size, setSize] = useState("");
 
   const handleAddToCart = () => {
-    // ✅ If user not logged in, redirect to login page
     if (!localStorage.getItem("authToken")) {
       alert("Please log in to add items to your cart.");
       navigate("/loginuser");
@@ -25,30 +24,16 @@ export default function Card(props) {
     }
 
     let finalPrice = qty * parseInt(options[size]);
-
-    const cartItem = {
+    const newItem = {
       id: props.foodItem._id,
       name: props.foodItem.name,
       price: finalPrice,
-      qty: qty,
-      size: size,
+      qty,
+      size,
+      img: props.foodItem.img
     };
 
-    // Save cart data to localStorage
-    const existingCart = JSON.parse(localStorage.getItem("cart")) || [];
-    existingCart.push(cartItem);
-    localStorage.setItem("cart", JSON.stringify(existingCart));
-
-    // Also update global context (if used)
-    dispatch({
-      type: ADD,
-      id: props.foodItem._id,
-      name: props.foodItem.name,
-      price: finalPrice,
-      qty: qty,
-      size: size,
-    });
-
+    dispatch({ type: ADD, item: newItem });
     alert("Item added to cart!");
   };
 
@@ -59,21 +44,13 @@ export default function Card(props) {
   return (
     <div>
       <div className="card mt-3" style={{ width: '19rem', maxHeight: '400px' }}>
-        <img
-          src={props.foodItem.img}
-          className="card-img-top"
-          style={{ height: '175px', objectFit: 'fill' }}
-          alt="..."
-        />
+        <img src={props.foodItem.img} className="card-img-top" style={{ height: '175px', objectFit: 'fill' }} alt="food" />
         <div className="card-body">
           <h5 className="card-title">{props.foodItem.name}</h5>
-          <p className="card-text">Important text</p>
           <div className="container w-100">
             <select className="m-2 h-100 bg-success rounded" onChange={(e) => setQty(e.target.value)}>
               {Array.from(Array(6), (e, i) => (
-                <option key={i + 1} value={i + 1}>
-                  {i + 1}
-                </option>
+                <option key={i + 1} value={i + 1}>{i + 1}</option>
               ))}
             </select>
             <select className="m-2 h-100 bg-success rounded" ref={priceRef} onChange={(e) => setSize(e.target.value)}>
