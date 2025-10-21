@@ -6,14 +6,19 @@ export default function MyOrders() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Get user from localStorage
-  const user = JSON.parse(localStorage.getItem('user'));
+  // Get user from localStorage safely
+  let user = null;
+  try {
+    user = JSON.parse(localStorage.getItem('user'));
+  } catch (err) {
+    console.warn("Error parsing user from localStorage:", err);
+  }
 
   useEffect(() => {
-    // Redirect to login if user not found
-    if (!user?._id) {
+    // Redirect to login if no user
+    if (!user || !user._id) {
       console.warn("User not logged in. Redirecting to login page.");
-      navigate('/loginuser');
+      navigate('/loginuser'); // adjust route as per your app
       return;
     }
 
