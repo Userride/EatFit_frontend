@@ -1,16 +1,26 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function MyOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  // Get user from localStorage
   const user = JSON.parse(localStorage.getItem('user'));
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      if (!user?._id && !user?.email) return;
+    // Redirect to login if user not found
+    if (!user?._id) {
+      console.warn("User not logged in. Redirecting to login page.");
+      navigate('/login');
+      return;
+    }
 
+    const fetchOrders = async () => {
       try {
         const res = await fetch(`https://eatfit-ecwm.onrender.com/api/orders/getUserOrders/${user._id}`);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
         setOrders(data.orders || []);
       } catch (err) {
@@ -21,10 +31,10 @@ export default function MyOrders() {
     };
 
     fetchOrders();
-  }, [user]);
+  }, [user, navigate]);
 
   if (loading) return <h4 className="text-center mt-4">Loading your orders...</h4>;
-  if (orders.length === 0) return <h4 className="text-center mt-4">No past orders found.</h4>;
+  if (!orders.length) return <h4 className="text-center mt-4">No past orders found.</h4>;
 
   return (
     <div className="container mt-5">
