@@ -1,15 +1,13 @@
-// src/App.js
-import React from "react";
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useParams } from "react-router-dom";
-import { CartProvider } from "./components/ContextReducer";
-import Home from "./screens/Home";
-import Login from "./screens/Login";
-import Signup from "./screens/Signup";
-import MyCart from "./components/MyCart";
-import OrderTracking from "./components/OrderTracking";
+import { CartProvider } from './components/ContextReducer';
+import Home from './screens/Home';
+import Login from './screens/Login';
+import Signup from './screens/Signup';
+import MyCart from './components/MyCart';
+import OrderTracking from './components/OrderTracking';
 
-import GoogleLoginSuccess from "./screens/GoogleLoginSuccess";
-import Navbar from "./components/Navbar";
+import GoogleLoginSuccess from './screens/GoogleLoginSuccess';
 
 function OrderTrackingWrapper() {
   const { orderId } = useParams();
@@ -20,7 +18,6 @@ function App() {
   return (
     <CartProvider>
       <Router>
-        <Navbar />
         <Routes>
           <Route exact path="/" element={<Home />} />
           <Route exact path="/loginuser" element={<Login />} />
