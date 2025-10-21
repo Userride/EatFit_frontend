@@ -7,7 +7,7 @@ import Login from "./screens/Login";
 import Signup from "./screens/Signup";
 import MyCart from "./components/MyCart";
 import OrderTracking from "./components/OrderTracking";
-import MyOrders from "./components/MyOrders";
+
 import GoogleLoginSuccess from "./screens/GoogleLoginSuccess";
 import Navbar from "./components/Navbar";
 
@@ -26,7 +26,7 @@ function App() {
           <Route exact path="/loginuser" element={<Login />} />
           <Route exact path="/createuser" element={<Signup />} />
           <Route exact path="/mycart" element={<MyCart />} />
-          <Route exact path="/myorders" element={<MyOrders />} />
+       
           <Route exact path="/track-order/:orderId" element={<OrderTrackingWrapper />} />
           <Route exact path="/google-login-success" element={<GoogleLoginSuccess />} />
         </Routes>
