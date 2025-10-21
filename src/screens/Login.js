@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from "react-router-dom"; // Import useNavigate to redirect
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Login() {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
@@ -23,13 +23,12 @@ export default function Login() {
     } else {
       localStorage.setItem("authToken", json.authToken);
       localStorage.setItem("user", JSON.stringify(json.user));
-      navigate("/"); // redirect to home
+      navigate("/");
     }
   };
 
   // Google login
   const handleGoogleLogin = () => {
-    // Open backend Google OAuth endpoint
     window.open("https://eatfit-ecwm.onrender.com/auth/google", "_self");
   };
 
@@ -58,9 +57,43 @@ export default function Login() {
     maxWidth: '90%'
   };
 
+  const googleBtnStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'white',
+    color: '#3c4043',
+    border: '1px solid #dadce0',
+    borderRadius: '5px',
+    fontSize: '16px',
+    fontWeight: '500',
+    padding: '10px',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s ease, box-shadow 0.2s ease',
+    width: '100%'
+  };
+
+  const googleIconStyle = {
+    height: '20px',
+    width: '20px',
+    marginRight: '10px'
+  };
+
+  const handleHover = (e, enter) => {
+    if (enter) {
+      e.currentTarget.style.backgroundColor = '#f7f8f8';
+      e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)';
+    } else {
+      e.currentTarget.style.backgroundColor = 'white';
+      e.currentTarget.style.boxShadow = 'none';
+    }
+  };
+
   return (
     <div style={containerStyle}>
       <form style={formStyle} onSubmit={handleSubmit}>
+        <h3 className="text-center mb-3">Welcome Back 👋</h3>
+        
         <div className="mb-3">
           <label htmlFor="email" className="form-label">Email address</label>
           <input
@@ -72,7 +105,9 @@ export default function Login() {
             id="email"
             aria-describedby="emailHelp"
           />
-          <div id="emailHelp" className="form-text">We'll never share your email with anyone else.</div>
+          <div id="emailHelp" className="form-text text-light">
+            We'll never share your email with anyone else.
+          </div>
         </div>
 
         <div className="mb-3">
@@ -88,12 +123,22 @@ export default function Login() {
         </div>
 
         <button type="submit" className="btn btn-primary w-100 mb-2">Login</button>
-        <Link to="/createuser" className='btn btn-danger w-100 mb-2'>I'm a new user</Link>
+        <Link to="/createuser" className='btn btn-outline-light w-100 mb-3'>I'm a new user</Link>
 
-        {/* ✅ Google login button */}
-        <button type="button" className="btn btn-danger w-100" onClick={handleGoogleLogin}>
-          Login with Google
-        </button>
+        {/* ✅ Realistic Google login button */}
+        <div
+          style={googleBtnStyle}
+          onClick={handleGoogleLogin}
+          onMouseEnter={(e) => handleHover(e, true)}
+          onMouseLeave={(e) => handleHover(e, false)}
+        >
+          <img
+            src="https://developers.google.com/identity/images/g-logo.png"
+            alt="Google logo"
+            style={googleIconStyle}
+          />
+          <span>Sign in with Google</span>
+        </div>
       </form>
     </div>
   );
