@@ -1,26 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { useCart, useDispatchCart } from './ContextReducer';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import io from 'socket.io-client';
+import { useNavigate } from 'react-router-dom';
 
 const socket = io('https://eatfit-ecwm.onrender.com');
 
-// Static hotel coordinates
-const hotelCoords = { lat: 22.9753, lon: 88.4345 };
+// Static hotel coordinates for B-14, Kalyani City
+const hotelCoords = { lat: 22.9753, lon: 88.4345 }; // Replace with exact lat/lon
 
 export default function MyCart() {
-  const cartItems = useCart(); // use context
-  const dispatch = useDispatchCart();
+  const [cartItems, setCartItems] = useState([]);
   const [address, setAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [orderId, setOrderId] = useState(null);
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
   const [orderStatus, setOrderStatus] = useState('');
   const [distance, setDistance] = useState(null);
+
   const navigate = useNavigate();
 
-  // Socket listener for order status updates
+  useEffect(() => {
+    const cartData = JSON.parse(localStorage.getItem('cart')) || [];
+    setCartItems(cartData);
+  }, []);
+
   useEffect(() => {
     if (orderId) {
       socket.emit('join_order', orderId);
@@ -31,31 +34,32 @@ export default function MyCart() {
     return () => socket.off('orderStatusUpdate');
   }, [orderId]);
 
-  // Delete item from cart
   const handleDelete = (id) => {
-    dispatch({ type: "REMOVE", id });
+    const updated = cartItems.filter((item) => item.id !== id);
+    setCartItems(updated);
+    localStorage.setItem('cart', JSON.stringify(updated));
   };
 
-  // Place order
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!address || !paymentMethod) return alert('Fill all fields');
-    if (!cartItems.length) return alert('Cart is empty');
 
     const orderData = {
-      userId: '6663dea9247e2d518ab8dd33', // replace with logged-in user ID
-      cartItems,
-      address,
-      paymentMethod
-    };
+  userId: '6663dea9247e2d518ab8dd33', // <-- valid MongoDB ObjectId
+  cartItems,
+  address,
+  paymentMethod
+};
+
 
     try {
       const res = await axios.post('https://eatfit-ecwm.onrender.com/api/orders/createOrder', orderData);
-      setOrderId(res.data.orderId);
+setOrderId(res.data.orderId); // <-- this is MongoDB _id
+
       setOrderStatus('Order Placed');
       setIsOrderPlaced(true);
 
-      // Calculate distance
+      // Get user location and calculate distance
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition((pos) => {
           const userCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
@@ -71,67 +75,51 @@ export default function MyCart() {
     }
   };
 
-  // Haversine formula
+  // Haversine formula to calculate distance
   const getDistanceFromLatLonInKm = (lat1, lon1, lat2, lon2) => {
-    const R = 6371;
+    const R = 6371; // Earth radius in km
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
     const a =
-      Math.sin(dLat / 2) ** 2 +
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-      Math.sin(dLon / 2) ** 2;
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
 
   const deg2rad = (deg) => deg * (Math.PI / 180);
 
-  // Total price safely
-  const totalPrice = cartItems
-    .filter(item => item != null)
-    .reduce((sum, item) => sum + (item.price || 0) * (item.qty || 0), 0);
+  // Total price
+  const totalPrice = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
 
   return (
     <div className="container mt-4">
       <h2>Your Cart</h2>
-
-      {cartItems.filter(item => item != null).length === 0 ? (
-        <p>Your cart is empty.</p>
-      ) : (
+      {cartItems.length === 0 ? <p>Your cart is empty.</p> :
         <table className="table table-bordered">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Qty</th>
-              <th>Size</th>
-              <th>Price</th>
-              <th>Action</th>
+              <th>Name</th><th>Qty</th><th>Size</th><th>Price</th><th>Action</th>
             </tr>
           </thead>
           <tbody>
-            {cartItems
-              .filter(item => item != null)
-              .map((item, i) => (
-                <tr key={i}>
-                  <td>{item.name}</td>
-                  <td>{item.qty}</td>
-                  <td>{item.size}</td>
-                  <td>₹{item.price}</td>
-                  <td>
-                    <button onClick={() => handleDelete(item.id)} className="btn btn-danger">
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))
-            }
+            {cartItems.map((item, i) => (
+              <tr key={i}>
+                <td>{item.name}</td>
+                <td>{item.qty}</td>
+                <td>{item.size}</td>
+                <td>₹{item.price * item.qty}</td>
+                <td><button onClick={() => handleDelete(item.id)} className="btn btn-danger">Delete</button></td>
+              </tr>
+            ))}
             <tr>
               <td colSpan="3" style={{ textAlign: 'right', fontWeight: 'bold' }}>Total:</td>
               <td colSpan="2" style={{ fontWeight: 'bold' }}>₹{totalPrice}</td>
             </tr>
           </tbody>
         </table>
-      )}
+      }
 
       <div className="mt-3">
         <textarea
@@ -143,7 +131,7 @@ export default function MyCart() {
         />
         <button className="btn btn-info mt-2" onClick={() => {
           if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((pos) => {
+            navigator.geolocation.getCurrentPosition(async (pos) => {
               const lat = pos.coords.latitude;
               const lon = pos.coords.longitude;
               setAddress(`Lat:${lat}, Lon:${lon}`);
