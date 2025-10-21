@@ -6,11 +6,11 @@ import io from 'socket.io-client';
 
 const socket = io('https://eatfit-ecwm.onrender.com');
 
-// Hotel coordinates
+// Static hotel coordinates
 const hotelCoords = { lat: 22.9753, lon: 88.4345 };
 
 export default function MyCart() {
-  const cartItems = useCart(); // get cart from context
+  const cartItems = useCart(); // use context
   const dispatch = useDispatchCart();
   const [address, setAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
@@ -40,7 +40,7 @@ export default function MyCart() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!address || !paymentMethod) return alert('Fill all fields');
-    if (cartItems.length === 0) return alert('Cart is empty');
+    if (!cartItems.length) return alert('Cart is empty');
 
     const orderData = {
       userId: '6663dea9247e2d518ab8dd33', // replace with logged-in user ID
@@ -86,14 +86,16 @@ export default function MyCart() {
 
   const deg2rad = (deg) => deg * (Math.PI / 180);
 
-  // Total price
-  const totalPrice = cartItems.reduce((sum, item) => sum + (item?.price || 0) * (item?.qty || 0), 0);
+  // Total price safely
+  const totalPrice = cartItems
+    .filter(item => item != null)
+    .reduce((sum, item) => sum + (item.price || 0) * (item.qty || 0), 0);
 
   return (
     <div className="container mt-4">
       <h2>Your Cart</h2>
 
-      {cartItems.length === 0 ? (
+      {cartItems.filter(item => item != null).length === 0 ? (
         <p>Your cart is empty.</p>
       ) : (
         <table className="table table-bordered">
@@ -107,19 +109,22 @@ export default function MyCart() {
             </tr>
           </thead>
           <tbody>
-            {cartItems.map((item, i) => (
-              <tr key={i}>
-                <td>{item.name}</td>
-                <td>{item.qty}</td>
-                <td>{item.size}</td>
-                <td>₹{item.price}</td>
-                <td>
-                  <button onClick={() => handleDelete(item.id)} className="btn btn-danger">
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {cartItems
+              .filter(item => item != null)
+              .map((item, i) => (
+                <tr key={i}>
+                  <td>{item.name}</td>
+                  <td>{item.qty}</td>
+                  <td>{item.size}</td>
+                  <td>₹{item.price}</td>
+                  <td>
+                    <button onClick={() => handleDelete(item.id)} className="btn btn-danger">
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
+            }
             <tr>
               <td colSpan="3" style={{ textAlign: 'right', fontWeight: 'bold' }}>Total:</td>
               <td colSpan="2" style={{ fontWeight: 'bold' }}>₹{totalPrice}</td>
