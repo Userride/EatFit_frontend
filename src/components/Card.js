@@ -6,7 +6,6 @@ const ADD = "ADD";
 
 export default function Card(props) {
   const dispatch = useDispatchCart();
-  const data = useCart();
   const navigate = useNavigate();
 
   const priceRef = useRef();
@@ -15,6 +14,10 @@ export default function Card(props) {
 
   const [qty, setQty] = useState("1");
   const [size, setSize] = useState("");
+
+  useEffect(() => {
+    setSize(priceRef.current.value);
+  }, []);
 
   const handleAddToCart = () => {
     if (!localStorage.getItem("authToken")) {
@@ -25,7 +28,6 @@ export default function Card(props) {
 
     const finalPrice = qty * parseInt(options[size]);
 
-    // ✅ Create new item
     const newItem = {
       id: props.foodItem._id,
       name: props.foodItem.name,
@@ -35,28 +37,14 @@ export default function Card(props) {
       img: props.foodItem.img
     };
 
-    // ✅ Dispatch matches reducer structure
+    // ✅ Correct dispatch: pass `item` key
     dispatch({
       type: ADD,
-      id: newItem.id,
-      name: newItem.name,
-      qty: newItem.qty,
-      size: newItem.size,
-      price: newItem.price,
-      img: newItem.img
+      item: newItem
     });
-
-    // ✅ Update localStorage (for persistence)
-    const existingCart = JSON.parse(localStorage.getItem("cart")) || [];
-    existingCart.push(newItem);
-    localStorage.setItem("cart", JSON.stringify(existingCart));
 
     alert("Item added to cart!");
   };
-
-  useEffect(() => {
-    setSize(priceRef.current.value);
-  }, []);
 
   return (
     <div>
