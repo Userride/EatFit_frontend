@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 const socket = io('https://eatfit-ecwm.onrender.com');
 
 // Static hotel coordinates for B-14, Kalyani City
-const hotelCoords = { lat: 22.9753, lon: 88.4345 }; // Replace with exact lat/lon
+const hotelCoords = { lat: 22.9753, lon: 88.4345 };
 
 export default function MyCart() {
   const [cartItems, setCartItems] = useState([]);
@@ -19,11 +19,15 @@ export default function MyCart() {
 
   const navigate = useNavigate();
 
+  // Load cart from localStorage safely
   useEffect(() => {
     const cartData = JSON.parse(localStorage.getItem('cart')) || [];
-    setCartItems(cartData);
+    // ✅ Filter out null or invalid items
+    const validItems = cartData.filter(item => item && item.price != null && item.qty != null);
+    setCartItems(validItems);
   }, []);
 
+  // Socket listener
   useEffect(() => {
     if (orderId) {
       socket.emit('join_order', orderId);
@@ -34,32 +38,33 @@ export default function MyCart() {
     return () => socket.off('orderStatusUpdate');
   }, [orderId]);
 
+  // Delete item
   const handleDelete = (id) => {
     const updated = cartItems.filter((item) => item.id !== id);
     setCartItems(updated);
     localStorage.setItem('cart', JSON.stringify(updated));
   };
 
+  // Place order
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!address || !paymentMethod) return alert('Fill all fields');
+    if (!cartItems.length) return alert('Cart is empty');
 
     const orderData = {
-  userId: '6663dea9247e2d518ab8dd33', // <-- valid MongoDB ObjectId
-  cartItems,
-  address,
-  paymentMethod
-};
-
+      userId: '6663dea9247e2d518ab8dd33', // Replace with actual user ID
+      cartItems,
+      address,
+      paymentMethod
+    };
 
     try {
       const res = await axios.post('https://eatfit-ecwm.onrender.com/api/orders/createOrder', orderData);
-setOrderId(res.data.orderId); // <-- this is MongoDB _id
-
+      setOrderId(res.data.orderId);
       setOrderStatus('Order Placed');
       setIsOrderPlaced(true);
 
-      // Get user location and calculate distance
+      // Get user location
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition((pos) => {
           const userCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
@@ -75,32 +80,40 @@ setOrderId(res.data.orderId); // <-- this is MongoDB _id
     }
   };
 
-  // Haversine formula to calculate distance
+  // Haversine formula
   const getDistanceFromLatLonInKm = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Earth radius in km
+    const R = 6371;
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
     const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.sin(dLat / 2) ** 2 +
       Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      Math.sin(dLon / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
-
   const deg2rad = (deg) => deg * (Math.PI / 180);
 
-  // Total price
-  const totalPrice = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+  // Total price safely
+  const totalPrice = cartItems
+    .filter(item => item != null && item.price != null && item.qty != null)
+    .reduce((sum, item) => sum + item.price * item.qty, 0);
 
   return (
     <div className="container mt-4">
       <h2>Your Cart</h2>
-      {cartItems.length === 0 ? <p>Your cart is empty.</p> :
+
+      {cartItems.length === 0 ? (
+        <p>Your cart is empty.</p>
+      ) : (
         <table className="table table-bordered">
           <thead>
             <tr>
-              <th>Name</th><th>Qty</th><th>Size</th><th>Price</th><th>Action</th>
+              <th>Name</th>
+              <th>Qty</th>
+              <th>Size</th>
+              <th>Price</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -110,7 +123,11 @@ setOrderId(res.data.orderId); // <-- this is MongoDB _id
                 <td>{item.qty}</td>
                 <td>{item.size}</td>
                 <td>₹{item.price * item.qty}</td>
-                <td><button onClick={() => handleDelete(item.id)} className="btn btn-danger">Delete</button></td>
+                <td>
+                  <button onClick={() => handleDelete(item.id)} className="btn btn-danger">
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
             <tr>
@@ -119,7 +136,7 @@ setOrderId(res.data.orderId); // <-- this is MongoDB _id
             </tr>
           </tbody>
         </table>
-      }
+      )}
 
       <div className="mt-3">
         <textarea
@@ -129,17 +146,22 @@ setOrderId(res.data.orderId); // <-- this is MongoDB _id
           value={address}
           onChange={(e) => setAddress(e.target.value)}
         />
-        <button className="btn btn-info mt-2" onClick={() => {
-          if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(async (pos) => {
-              const lat = pos.coords.latitude;
-              const lon = pos.coords.longitude;
-              setAddress(`Lat:${lat}, Lon:${lon}`);
-              const km = getDistanceFromLatLonInKm(lat, lon, hotelCoords.lat, hotelCoords.lon);
-              setDistance(km.toFixed(2));
-            });
-          }
-        }}>Use Current Location</button>
+        <button
+          className="btn btn-info mt-2"
+          onClick={() => {
+            if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition((pos) => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                setAddress(`Lat:${lat}, Lon:${lon}`);
+                const km = getDistanceFromLatLonInKm(lat, lon, hotelCoords.lat, hotelCoords.lon);
+                setDistance(km.toFixed(2));
+              });
+            }
+          }}
+        >
+          Use Current Location
+        </button>
       </div>
 
       <div className="mt-3">
