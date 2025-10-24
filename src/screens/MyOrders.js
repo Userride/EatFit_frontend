@@ -10,7 +10,7 @@ export default function MyOrders() {
       if (!userId) return;
 
       try {
-        const res = await axios.get(`https://eatfit-ecwm.onrender.com/api/orders/myOrders/${userId}`);
+        const res = await axios.get(`https://eatfit-ecwm.onrender.com/api/myOrders/${userId}`);
         setOrders(res.data.orders || []);
       } catch (err) {
         console.error(err);
