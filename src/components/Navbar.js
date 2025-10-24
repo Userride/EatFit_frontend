@@ -63,7 +63,7 @@ export default function Navbar() {
                 to="/myorders"
                 style={{ color: "brown", fontSize: "1.25rem", textDecoration: "none", marginLeft: "15px" }}
               >
-                My Orders
+              
               </Link>
             </li>
           )}
