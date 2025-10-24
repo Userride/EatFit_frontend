@@ -1,55 +1,82 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
 export default function MyOrders() {
   const [orders, setOrders] = useState([]);
-  const userId = localStorage.getItem("userId"); // Store userId in localStorage at login
-  const [loading, setLoading] = useState(true);
+  const userId = localStorage.getItem("userId"); // Assuming you store logged-in userId
 
   useEffect(() => {
     const fetchOrders = async () => {
+      if (!userId) return; // User not logged in
+
       try {
         const res = await axios.get(`https://eatfit-ecwm.onrender.com/api/orders/myOrders/${userId}`);
-        setOrders(res.data.orders);
+        // Backend should return { orders: [...] }
+        setOrders(res.data.orders || []); 
       } catch (err) {
         console.error(err);
         alert("Error fetching your orders");
-      } finally {
-        setLoading(false);
       }
     };
 
-    if (userId) fetchOrders();
+    fetchOrders();
   }, [userId]);
 
-  if (!userId) return <p>Please log in to see your orders.</p>;
-  if (loading) return <p>Loading your orders...</p>;
-  if (orders.length === 0) return <p>You have no past orders.</p>;
+  // Helper function to calculate total price of each order
+  const getTotalPrice = (cartItems) => {
+    return cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+  };
+
+  if (!userId) {
+    return <p className="m-3">Please login to see your orders.</p>;
+  }
 
   return (
     <div className="container mt-4">
-      <h2>My Orders</h2>
-      {orders.map((order) => (
-        <div key={order._id} className="card mb-3">
-          <div className="card-header">
-            <strong>Order ID:</strong> {order._id} &nbsp; | &nbsp; <strong>Status:</strong> {order.status}
+      <h2 className="mb-4">My Orders</h2>
+
+      {orders.length === 0 ? (
+        <p>You have no past orders.</p>
+      ) : (
+        orders.map((order) => (
+          <div key={order._id} className="card mb-4 shadow-sm">
+            <div className="card-header">
+              <strong>Order ID:</strong> {order._id} <br />
+              <strong>Status:</strong> {order.status} <br />
+              <strong>Payment:</strong> {order.paymentMethod} <br />
+              <strong>Address:</strong> {order.address} <br />
+              <strong>Ordered At:</strong> {new Date(order.createdAt).toLocaleString()}
+            </div>
+            <div className="card-body">
+              <h5 className="card-title">Items:</h5>
+              <table className="table table-bordered">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Qty</th>
+                    <th>Size</th>
+                    <th>Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {order.cartItems.map((item, i) => (
+                    <tr key={i}>
+                      <td>{item.name}</td>
+                      <td>{item.qty}</td>
+                      <td>{item.size}</td>
+                      <td>₹{item.price * item.qty}</td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td colSpan="3" style={{ textAlign: "right", fontWeight: "bold" }}>Total:</td>
+                    <td style={{ fontWeight: "bold" }}>₹{getTotalPrice(order.cartItems)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div className="card-body">
-            <p><strong>Address:</strong> {order.address}</p>
-            <p><strong>Payment Method:</strong> {order.paymentMethod}</p>
-            <h5>Items:</h5>
-            <ul>
-              {order.cartItems.map((item, idx) => (
-                <li key={idx}>
-                  {item.name} - {item.qty} x {item.size} - ₹{item.price * item.qty}
-                </li>
-              ))}
-            </ul>
-            <p><strong>Total:</strong> ₹{order.cartItems.reduce((sum, i) => sum + i.price * i.qty, 0)}</p>
-            <p><em>Ordered at: {new Date(order.createdAt).toLocaleString()}</em></p>
-          </div>
-        </div>
-      ))}
+        ))
+      )}
     </div>
   );
 }
