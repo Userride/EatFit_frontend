@@ -4,8 +4,6 @@ import io from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
 
 const socket = io('https://eatfit-ecwm.onrender.com');
-
-// Static hotel coordinates for B-14, Kalyani City
 const hotelCoords = { lat: 22.9753, lon: 88.4345 };
 
 export default function MyCart() {
@@ -19,15 +17,18 @@ export default function MyCart() {
 
   const navigate = useNavigate();
 
-  // Load cart from localStorage safely
+  // Load cart items from localStorage
   useEffect(() => {
     const cartData = JSON.parse(localStorage.getItem('cart')) || [];
-    // ✅ Filter out null or invalid items
-    const validItems = cartData.filter(item => item && item.price != null && item.qty != null);
-    setCartItems(validItems);
+    setCartItems(cartData);
   }, []);
 
-  // Socket listener
+  // Update localStorage whenever cartItems changes
+  useEffect(() => {
+    localStorage.setItem('cart', JSON.stringify(cartItems));
+  }, [cartItems]);
+
+  // Socket.io for order status
   useEffect(() => {
     if (orderId) {
       socket.emit('join_order', orderId);
@@ -42,33 +43,58 @@ export default function MyCart() {
   const handleDelete = (id) => {
     const updated = cartItems.filter((item) => item.id !== id);
     setCartItems(updated);
-    localStorage.setItem('cart', JSON.stringify(updated));
   };
 
-  // Place order
+  // Increase quantity
+  const handleIncrease = (index) => {
+    const newCart = [...cartItems];
+    newCart[index].qty = parseInt(newCart[index].qty) + 1;
+    setCartItems(newCart);
+  };
+
+  // Decrease quantity
+  const handleDecrease = (index) => {
+    const newCart = [...cartItems];
+    if (newCart[index].qty > 1) {
+      newCart[index].qty = parseInt(newCart[index].qty) - 1;
+    } else {
+      // Remove item if qty goes below 1
+      newCart.splice(index, 1);
+    }
+    setCartItems(newCart);
+  };
+
+  // Place Order
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!address || !paymentMethod) return alert('Fill all fields');
-    if (!cartItems.length) return alert('Cart is empty');
 
     const orderData = {
-      userId: '6663dea9247e2d518ab8dd33', // Replace with actual user ID
+      userId: '6663dea9247e2d518ab8dd33',
       cartItems,
       address,
       paymentMethod
     };
 
     try {
-      const res = await axios.post('https://eatfit-ecwm.onrender.com/api/orders/createOrder', orderData);
+      const res = await axios.post(
+        'https://eatfit-ecwm.onrender.com/api/orders/createOrder',
+        orderData
+      );
       setOrderId(res.data.orderId);
       setOrderStatus('Order Placed');
       setIsOrderPlaced(true);
 
-      // Get user location
+      // Calculate distance
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition((pos) => {
           const userCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-          const km = getDistanceFromLatLonInKm(userCoords.lat, userCoords.lon, hotelCoords.lat, hotelCoords.lon);
+          const km = getDistanceFromLatLonInKm(
+            userCoords.lat,
+            userCoords.lon,
+            hotelCoords.lat,
+            hotelCoords.lon
+          );
           setDistance(km.toFixed(2));
         });
       }
@@ -86,23 +112,19 @@ export default function MyCart() {
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
     const a =
-      Math.sin(dLat / 2) ** 2 +
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-      Math.sin(dLon / 2) ** 2;
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
   const deg2rad = (deg) => deg * (Math.PI / 180);
 
-  // Total price safely
-  const totalPrice = cartItems
-    .filter(item => item != null && item.price != null && item.qty != null)
-    .reduce((sum, item) => sum + item.price * item.qty, 0);
+  const totalPrice = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
 
   return (
     <div className="container mt-4">
       <h2>Your Cart</h2>
-
       {cartItems.length === 0 ? (
         <p>Your cart is empty.</p>
       ) : (
@@ -120,11 +142,30 @@ export default function MyCart() {
             {cartItems.map((item, i) => (
               <tr key={i}>
                 <td>{item.name}</td>
-                <td>{item.qty}</td>
+                <td>
+                  <div className="d-flex align-items-center">
+                    <button
+                      className="btn btn-sm btn-danger me-2"
+                      onClick={() => handleDecrease(i)}
+                    >
+                      -
+                    </button>
+                    <span>{item.qty}</span>
+                    <button
+                      className="btn btn-sm btn-success ms-2"
+                      onClick={() => handleIncrease(i)}
+                    >
+                      +
+                    </button>
+                  </div>
+                </td>
                 <td>{item.size}</td>
                 <td>₹{item.price * item.qty}</td>
                 <td>
-                  <button onClick={() => handleDelete(item.id)} className="btn btn-danger">
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    className="btn btn-danger"
+                  >
                     Delete
                   </button>
                 </td>
@@ -165,7 +206,11 @@ export default function MyCart() {
       </div>
 
       <div className="mt-3">
-        <select className="form-select" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+        <select
+          className="form-select"
+          value={paymentMethod}
+          onChange={(e) => setPaymentMethod(e.target.value)}
+        >
           <option value="">Select Payment Method</option>
           <option value="Cash on Delivery">Cash on Delivery</option>
           <option value="Credit Card">Credit Card</option>
