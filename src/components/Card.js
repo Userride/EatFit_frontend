@@ -17,7 +17,6 @@ export default function Card(props) {
   const [size, setSize] = useState("");
 
   const handleAddToCart = () => {
-    // ✅ If user not logged in, redirect to login page
     if (!localStorage.getItem("authToken")) {
       alert("Please log in to add items to your cart.");
       navigate("/loginuser");
@@ -34,12 +33,24 @@ export default function Card(props) {
       size: size,
     };
 
-    // Save cart data to localStorage
+    // Get existing cart
     const existingCart = JSON.parse(localStorage.getItem("cart")) || [];
+
+    // Check if item with same id & size already exists
+    const itemExists = existingCart.find(
+      (item) => item.id === cartItem.id && item.size === cartItem.size
+    );
+
+    if (itemExists) {
+      alert("Item already added in cart!");
+      return; // Stop adding duplicate
+    }
+
+    // Add item to cart
     existingCart.push(cartItem);
     localStorage.setItem("cart", JSON.stringify(existingCart));
 
-    // Also update global context (if used)
+    // Also update global context if using it
     dispatch({
       type: ADD,
       id: props.foodItem._id,
@@ -71,9 +82,7 @@ export default function Card(props) {
           <div className="container w-100">
             <select className="m-2 h-100 bg-success rounded" onChange={(e) => setQty(e.target.value)}>
               {Array.from(Array(6), (e, i) => (
-                <option key={i + 1} value={i + 1}>
-                  {i + 1}
-                </option>
+                <option key={i + 1} value={i + 1}>{i + 1}</option>
               ))}
             </select>
             <select className="m-2 h-100 bg-success rounded" ref={priceRef} onChange={(e) => setSize(e.target.value)}>
@@ -81,7 +90,9 @@ export default function Card(props) {
                 <option key={data} value={data}>{data}</option>
               ))}
             </select>
-            <div className="d-inline h-100 fs-5">Rs {qty * parseInt(options[size])}/-</div>
+            <div className="d-inline h-100 fs-5">
+              Rs {qty * parseInt(options[size])}/-
+            </div>
           </div>
           <hr />
           <button className="btn btn-success justify-center ms-2" onClick={handleAddToCart}>
