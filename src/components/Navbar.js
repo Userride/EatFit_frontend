@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 
 export default function Navbar() {
   const navigate = useNavigate();
-  
   const [cartCount, setCartCount] = useState(0);
 
   // Function to get cart count from localStorage
@@ -13,15 +12,12 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-    // Update cart count on mount
     updateCartCount();
-
-    // Listen for storage changes (if cart updated in another tab)
     window.addEventListener("storage", updateCartCount);
     return () => window.removeEventListener("storage", updateCartCount);
   }, []);
 
-  // Optional: update cart count whenever localStorage changes (after adding)
+  // Optional: update cart count periodically
   useEffect(() => {
     const interval = setInterval(updateCartCount, 500);
     return () => clearInterval(interval);
@@ -29,8 +25,11 @@ export default function Navbar() {
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
+    localStorage.removeItem("userId"); // remove stored userId
     navigate("/loginuser");
   };
+
+  const isLoggedIn = !!localStorage.getItem("authToken");
 
   return (
     <nav
@@ -56,10 +55,22 @@ export default function Navbar() {
               Home
             </Link>
           </li>
+
+          {isLoggedIn && (
+            <li className="nav-item">
+              <Link
+                className="nav-link active fs-5"
+                to="/myorders"
+                style={{ color: "brown", fontSize: "1.25rem", textDecoration: "none", marginLeft: "15px" }}
+              >
+                My Orders
+              </Link>
+            </li>
+          )}
         </ul>
 
         <div className="d-flex flex-wrap align-items-center my-2 my-lg-0">
-          {!localStorage.getItem("authToken") ? (
+          {!isLoggedIn ? (
             <>
               <Link
                 className="nav-link mx-lg-2 mb-2 mb-lg-0"
