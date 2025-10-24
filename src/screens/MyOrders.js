@@ -3,7 +3,7 @@ import axios from "axios";
 
 export default function MyOrders() {
   const [orders, setOrders] = useState([]);
-  const userId = localStorage.getItem("userId"); // Make sure userId is saved in localStorage after login
+  const userId = localStorage.getItem("userId"); // Must be set on login
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -25,7 +25,9 @@ export default function MyOrders() {
     return cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
   };
 
-  if (!userId) return <p className="m-3">Please login to see your orders.</p>;
+  if (!userId) {
+    return <p className="m-3">Please login to see your orders.</p>;
+  }
 
   return (
     <div className="container mt-4">
