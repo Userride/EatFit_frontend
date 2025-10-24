@@ -3,26 +3,25 @@ import axios from "axios";
 
 export default function MyOrders() {
   const [orders, setOrders] = useState([]);
-  const userId = localStorage.getItem("userId"); // Assuming you store logged-in userId
+  const userId = localStorage.getItem("userId"); // Make sure userId is stored after login
 
   useEffect(() => {
     const fetchOrders = async () => {
       if (!userId) return; // User not logged in
-
       try {
         const res = await axios.get(`https://eatfit-ecwm.onrender.com/api/orders/myOrders/${userId}`);
-        // Backend should return { orders: [...] }
-        setOrders(res.data.orders || []); 
+        console.log("Fetched orders:", res.data.orders); // Check console
+        setOrders(res.data.orders || []);
       } catch (err) {
         console.error(err);
-        alert("Error fetching your orders");
+        alert("Error fetching orders");
       }
     };
 
     fetchOrders();
   }, [userId]);
 
-  // Helper function to calculate total price of each order
+  // Calculate total price of cart items
   const getTotalPrice = (cartItems) => {
     return cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
   };
@@ -41,10 +40,10 @@ export default function MyOrders() {
         orders.map((order) => (
           <div key={order._id} className="card mb-4 shadow-sm">
             <div className="card-header">
-              <strong>Order ID:</strong> {order._id} <br />
-              <strong>Status:</strong> {order.status} <br />
-              <strong>Payment:</strong> {order.paymentMethod} <br />
-              <strong>Address:</strong> {order.address} <br />
+              <strong>Order ID:</strong> {order._id}<br/>
+              <strong>Status:</strong> {order.status}<br/>
+              <strong>Payment:</strong> {order.paymentMethod}<br/>
+              <strong>Address:</strong> {order.address}<br/>
               <strong>Ordered At:</strong> {new Date(order.createdAt).toLocaleString()}
             </div>
             <div className="card-body">
@@ -59,8 +58,8 @@ export default function MyOrders() {
                   </tr>
                 </thead>
                 <tbody>
-                  {order.cartItems.map((item, i) => (
-                    <tr key={i}>
+                  {order.cartItems.map((item, idx) => (
+                    <tr key={idx}>
                       <td>{item.name}</td>
                       <td>{item.qty}</td>
                       <td>{item.size}</td>
