@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 export default function Login() {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
-  const navigate = useNavigate();  
+  const navigate = useNavigate();
 
   // Email/password login
   const handleSubmit = async (e) => {
@@ -21,8 +21,11 @@ export default function Login() {
     if (!json.success) {
       alert("Enter valid credentials");
     } else {
+      // *** FIX: Save authToken and the new userId ***
       localStorage.setItem("authToken", json.authToken);
-      localStorage.setItem("user", JSON.stringify(json.user));
+      localStorage.setItem("userId", json.userId); // <-- Corrected from json.user
+      
+      console.log("Logged in, userId saved:", json.userId); // For debugging
       navigate("/");
     }
   };
