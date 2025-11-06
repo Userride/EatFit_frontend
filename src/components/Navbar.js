@@ -67,7 +67,7 @@ export default function Navbar() {
             <li className="nav-item">
               <Link
                 className="nav-link active fs-5"
-                to="/loginuser"
+                to="/myorders"
                 style={{ color: "brown", fontSize: "1.25rem", textDecoration: "none", marginLeft: "15px" }}
               >
                 My Orders
