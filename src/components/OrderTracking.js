@@ -15,15 +15,26 @@ export default function OrderTracking() {
   const [status, setStatus] = useState('Fetching...');
   const [order, setOrder] = useState(null);
   const [distance, setDistance] = useState(null);
+  
+  // *** FIX: Get the logged-in user's ID ***
+  const userId = localStorage.getItem("userId");
 
   // Fetch order details
   useEffect(() => {
     const fetchOrder = async () => {
+      // *** FIX: Check for both orderId and userId ***
+      if (!orderId || !userId) {
+        setStatus("Invalid session or order ID.");
+        return;
+      }
+
       try {
+        // *** FIX: Send userId as a query parameter for verification ***
         const res = await axios.get(
-          `https://eatfit-ecwm.onrender.com/api/orders/${orderId}`,
-          { withCredentials: true } // ✅ important
+          `https://eatfit-ecwm.onrender.com/api/orders/${orderId}?userId=${userId}`,
+          { withCredentials: true }
         );
+        
         console.log('Fetched order:', res.data);
         setOrder(res.data.order);
         setStatus(res.data.order.status);
@@ -41,12 +52,19 @@ export default function OrderTracking() {
         }
       } catch (err) {
         console.error('Error fetching order:', err);
-        setStatus('Unable to fetch order details.');
+        // *** FIX: Check for authorization error ***
+        if (err.response && err.response.status === 403) {
+            setStatus('You are not authorized to view this order.');
+        } else if (err.response && err.response.status === 404) {
+            setStatus('Order not found.');
+        } else {
+            setStatus('Unable to fetch order details.');
+        }
       }
     };
 
     fetchOrder();
-  }, [orderId]);
+  }, [orderId, userId]); // *** FIX: Add userId as a dependency ***
 
   // Listen for live status updates
   useEffect(() => {
@@ -71,6 +89,17 @@ export default function OrderTracking() {
 
   const deg2rad = (deg) => deg * (Math.PI / 180);
 
+  // Show loading/error states
+  if (!order) {
+    return (
+        <div style={{ textAlign: 'center', marginTop: '40px', color: 'white' }}>
+            <h2>🚚 Track Your Order</h2>
+            <p><strong>Status:</strong> <span style={{ color: '#ffc107' }}>{status}</span></p>
+        </div>
+    );
+  }
+
+  // Show order details
   return (
     <div style={{ textAlign: 'center', marginTop: '40px', color: 'white', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto' }}>
       <h2>🚚 Track Your Order</h2>
