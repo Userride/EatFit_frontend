@@ -10,15 +10,14 @@ export default function GoogleLoginSuccess() {
     const name = params.get('name');
     const email = params.get('email');
     const avatar = params.get('avatar');
-    const userId = params.get('userId'); // ✅ Added
+    const userId = params.get('userId'); // ✅ now coming from backend
 
     if (email && userId) {
-      // ✅ Save Google user info
       localStorage.setItem('user', JSON.stringify({ name, email, avatar }));
-      localStorage.setItem('authToken', 'google-login'); // Dummy auth token
-      localStorage.setItem('userId', userId); // ✅ Store the MongoDB _id
-      console.log("✅ Google user logged in:", { name, email, userId });
+      localStorage.setItem('authToken', 'google-login');
+      localStorage.setItem('userId', userId); // ✅ store the correct MongoDB userId
 
+      console.log("✅ Google user logged in:", { name, email, userId });
       navigate("/");
     } else {
       alert("Google login failed");
@@ -26,6 +25,5 @@ export default function GoogleLoginSuccess() {
     }
   }, [location, navigate]);
 
-  return <h4 style={{ textAlign: "center", marginTop: "50px" }}>Logging you in via Google...</h4>;
+  return <h4>Logging you in...</h4>;
 }
-
