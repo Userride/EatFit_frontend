@@ -10,17 +10,19 @@ export default function MyOrders() {
       if (!userId) return;
 
       try {
-        // --- THIS IS THE FIX ---
-        // We must send credentials, just like in the OrderTracking component
+        // --- *** THIS IS THE FIX *** ---
+        // You must send credentials for cross-origin requests
         const res = await axios.get(
           `https://eatfit-ecwm.onrender.com/api/orders/myOrders/${userId}`,
           { withCredentials: true } // <-- ADD THIS LINE
         );
-        // ------------------------
+        // ---------------------------------
 
+        console.log("Fetched My Orders:", res.data); // Added for debugging
         setOrders(res.data.orders || []);
+
       } catch (err) {
-        console.error("Error fetching my orders:", err); // Added a specific console error
+        console.error("Error fetching my orders:", err); // More specific log
         alert("Error fetching your orders");
       }
     };
