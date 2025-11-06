@@ -5,26 +5,27 @@ export default function MyOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Get logged-in userId from localStorage (works for Google + normal login)
-  const userId = localStorage.getItem("userId");
+  // ✅ Get user info (normal + Google)
+  const storedUser = JSON.parse(localStorage.getItem("user"));
+  const userId = localStorage.getItem("userId") || storedUser?.email;
 
   useEffect(() => {
     const fetchOrders = async () => {
-      if (!userId) {
-        console.warn("⚠️ No userId found. Please login first.");
-        setLoading(false);
-        return;
-      }
-
       try {
+        if (!userId) {
+          console.warn("⚠️ No userId found — showing empty orders.");
+          setOrders([]);
+          return;
+        }
+
         const res = await axios.get(
           `https://eatfit-ecwm.onrender.com/api/orders/myOrders/${userId}`,
           { withCredentials: true }
         );
-        console.log("✅ Fetched My Orders:", res.data);
+        console.log("✅ MyOrders fetched:", res.data);
         setOrders(res.data.orders || []);
       } catch (err) {
-        console.error("❌ Error fetching my orders:", err);
+        console.error("❌ Error fetching orders:", err);
       } finally {
         setLoading(false);
       }
@@ -33,9 +34,8 @@ export default function MyOrders() {
     fetchOrders();
   }, [userId]);
 
-  const getTotalPrice = (cartItems = []) => {
-    return cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
-  };
+  const getTotalPrice = (cartItems = []) =>
+    cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -47,30 +47,35 @@ export default function MyOrders() {
         return "#e67e22";
       case "Delivered":
         return "#2ecc71";
-      case "Cancelled":
-        return "#e74c3c";
       default:
         return "#95a5a6";
     }
   };
 
-  if (loading)
-    return <h4 className="text-center mt-4 text-light">Loading your orders...</h4>;
-
-  if (!userId)
-    return (
-      <div className="text-center mt-5 text-light">
-        <h5>Please login to view your orders.</h5>
-      </div>
-    );
-
   return (
     <div className="container mt-5 text-light">
       <h2 className="mb-4 text-center">🛒 My Orders</h2>
 
-      {orders.length === 0 ? (
-        <p className="text-center">You have no past orders.</p>
-      ) : (
+      {/* --- Case 1: Loader --- */}
+      {loading && (
+        <p className="text-center text-muted">Loading your orders...</p>
+      )}
+
+      {/* --- Case 2: Not logged in --- */}
+      {!loading && !userId && (
+        <p className="text-center text-warning">
+          Please login to view your orders.
+        </p>
+      )}
+
+      {/* --- Case 3: No orders found --- */}
+      {!loading && userId && orders.length === 0 && (
+        <p className="text-center text-muted">You have no past orders.</p>
+      )}
+
+      {/* --- Case 4: Orders exist --- */}
+      {!loading &&
+        orders.length > 0 &&
         orders.map((order) => (
           <div
             key={order._id}
@@ -104,7 +109,7 @@ export default function MyOrders() {
                     fontSize: "0.9rem",
                   }}
                 >
-                  {order.status}
+                  {order.status || "Order Placed"}
                 </div>
               </div>
             </div>
@@ -131,7 +136,7 @@ export default function MyOrders() {
                   </tr>
                 </thead>
                 <tbody>
-                  {order.cartItems.map((item, i) => (
+                  {order.cartItems?.map((item, i) => (
                     <tr key={i}>
                       <td>{item.name}</td>
                       <td>{item.qty}</td>
@@ -149,8 +154,7 @@ export default function MyOrders() {
               </table>
             </div>
           </div>
-        ))
-      )}
+        ))}
     </div>
   );
 }
