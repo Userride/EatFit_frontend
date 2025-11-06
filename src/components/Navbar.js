@@ -24,12 +24,18 @@ export default function Navbar() {
   }, []);
 
   const handleLogout = () => {
+    // --- FIX 1: Remove ALL keys related to login ---
     localStorage.removeItem("authToken");
-    localStorage.removeItem("userId"); // remove stored userId
+    localStorage.removeItem("userId");
+    localStorage.removeItem("user"); // <-- This clears the Google login data
+    // ---------------------------------------------
     navigate("/loginuser");
   };
 
-  const isLoggedIn = !!localStorage.getItem("authToken");
+  // --- FIX 2: Check for EITHER login method ---
+  // If authToken (JWT) exists OR user (Google) exists, they are logged in.
+  const isLoggedIn = !!(localStorage.getItem("authToken") || localStorage.getItem("user"));
+  // -------------------------------------------
 
   return (
     <nav
@@ -56,6 +62,7 @@ export default function Navbar() {
             </Link>
           </li>
 
+          {/* This will now show "My Orders" if you are logged in with Google OR Email */}
           {isLoggedIn && (
             <li className="nav-item">
               <Link
@@ -70,6 +77,7 @@ export default function Navbar() {
         </ul>
 
         <div className="d-flex flex-wrap align-items-center my-2 my-lg-0">
+          {/* This will now correctly show Login/Signup only when fully logged out */}
           {!isLoggedIn ? (
             <>
               <Link
