@@ -48,10 +48,23 @@ export default function MyCart() {
   // Place order
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // --- *** THIS IS THE FIX *** ---
+    // 1. Get the currently logged-in user
+    const userId = localStorage.getItem("userId");
+
+    // 2. Check if the user is logged in
+    if (!userId) {
+      alert("You must be logged in to place an order.");
+      navigate("/loginuser"); // Optional: redirect to login
+      return;
+    }
+    // ---------------------------------
+
     if (!address || !paymentMethod) return alert('Please fill all fields.');
 
     const orderData = {
-      userId: '6663dea9247e2d518ab8dd33', // Replace with logged-in userId dynamically
+      userId: userId, // <-- 3. Use the dynamic userId from localStorage
       cartItems,
       address,
       paymentMethod
