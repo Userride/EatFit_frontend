@@ -3,60 +3,125 @@ import axios from "axios";
 
 export default function MyOrders() {
   const [orders, setOrders] = useState([]);
-  const userId = localStorage.getItem("userId"); // Must be set on login
+  const [loading, setLoading] = useState(true);
+
+  // ✅ Get logged-in userId from localStorage (works for Google + normal login)
+  const userId = localStorage.getItem("userId");
 
   useEffect(() => {
     const fetchOrders = async () => {
-      if (!userId) return;
+      if (!userId) {
+        console.warn("⚠️ No userId found. Please login first.");
+        setLoading(false);
+        return;
+      }
 
       try {
-        // --- *** THIS IS THE FIX *** ---
-        // You must send credentials for cross-origin requests
         const res = await axios.get(
           `https://eatfit-ecwm.onrender.com/api/orders/myOrders/${userId}`,
-          { withCredentials: true } // <-- ADD THIS LINE
+          { withCredentials: true }
         );
-        // ---------------------------------
-
-        console.log("Fetched My Orders:", res.data); // Added for debugging
+        console.log("✅ Fetched My Orders:", res.data);
         setOrders(res.data.orders || []);
-
       } catch (err) {
-        console.error("Error fetching my orders:", err); // More specific log
-        alert("Error fetching your orders");
+        console.error("❌ Error fetching my orders:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchOrders();
   }, [userId]);
 
-  const getTotalPrice = (cartItems) => {
+  const getTotalPrice = (cartItems = []) => {
     return cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
   };
 
-  if (!userId) {
-    return <p className="m-3">Please login to see your orders.</p>;
-  }
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Order Placed":
+        return "#3498db";
+      case "Processing":
+        return "#f1c40f";
+      case "Out for Delivery":
+        return "#e67e22";
+      case "Delivered":
+        return "#2ecc71";
+      case "Cancelled":
+        return "#e74c3c";
+      default:
+        return "#95a5a6";
+    }
+  };
+
+  if (loading)
+    return <h4 className="text-center mt-4 text-light">Loading your orders...</h4>;
+
+  if (!userId)
+    return (
+      <div className="text-center mt-5 text-light">
+        <h5>Please login to view your orders.</h5>
+      </div>
+    );
 
   return (
-    <div className="container mt-4">
-      <h2 className="mb-4">My Orders</h2>
+    <div className="container mt-5 text-light">
+      <h2 className="mb-4 text-center">🛒 My Orders</h2>
 
       {orders.length === 0 ? (
-        <p>You have no past orders.</p>
+        <p className="text-center">You have no past orders.</p>
       ) : (
         orders.map((order) => (
-          <div key={order._id} className="card mb-4 shadow-sm">
-            <div className="card-header">
-              <strong>Order ID:</strong> {order._id} <br />
-              <strong>Status:</strong> {order.status} <br />
-              <strong>Payment:</strong> {order.paymentMethod} <br />
-              <strong>Address:</strong> {order.address} <br />
-              <strong>Ordered At:</strong> {new Date(order.createdAt).toLocaleString()}
+          <div
+            key={order._id}
+            className="card mb-4 shadow-sm"
+            style={{
+              backgroundColor: "#1f1f1f",
+              border: "1px solid #333",
+              borderRadius: "10px",
+            }}
+          >
+            <div
+              className="card-header"
+              style={{
+                backgroundColor: "#292929",
+                color: "#fff",
+                borderTopLeftRadius: "10px",
+                borderTopRightRadius: "10px",
+              }}
+            >
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <strong>Order ID:</strong> {order._id}
+                </div>
+                <div
+                  style={{
+                    backgroundColor: getStatusColor(order.status),
+                    color: "white",
+                    padding: "4px 10px",
+                    borderRadius: "8px",
+                    fontWeight: "500",
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  {order.status}
+                </div>
+              </div>
             </div>
+
             <div className="card-body">
-              <h5 className="card-title">Items:</h5>
-              <table className="table table-bordered">
+              <p><strong>Payment:</strong> {order.paymentMethod}</p>
+              <p><strong>Address:</strong> {order.address}</p>
+              <p>
+                <strong>Ordered On:</strong>{" "}
+                {new Date(order.createdAt).toLocaleString()}
+              </p>
+
+              <h5 className="mt-3 mb-2">🍽️ Ordered Items</h5>
+              <table
+                className="table table-sm table-dark table-bordered mb-0"
+                style={{ backgroundColor: "#2a2a2a" }}
+              >
                 <thead>
                   <tr>
                     <th>Name</th>
@@ -74,9 +139,11 @@ export default function MyOrders() {
                       <td>₹{item.price * item.qty}</td>
                     </tr>
                   ))}
-                  <tr>
-                    <td colSpan="3" style={{ textAlign: "right", fontWeight: "bold" }}>Total:</td>
-                    <td style={{ fontWeight: "bold" }}>₹{getTotalPrice(order.cartItems)}</td>
+                  <tr style={{ fontWeight: "bold" }}>
+                    <td colSpan="3" style={{ textAlign: "right" }}>
+                      Total:
+                    </td>
+                    <td>₹{getTotalPrice(order.cartItems)}</td>
                   </tr>
                 </tbody>
               </table>
