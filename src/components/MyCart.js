@@ -4,7 +4,9 @@ import io from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
 
 const socket = io('https://eatfit-ecwm.onrender.com');
-const hotelCoords = { lat: 22.9753, lon: 88.4345 };
+
+// Static hotel coordinates for B-14, Kalyani City
+const hotelCoords = { lat: 22.9753, lon: 88.4345 }; // Replace with exact lat/lon
 
 export default function MyCart() {
   const [cartItems, setCartItems] = useState([]);
@@ -17,18 +19,14 @@ export default function MyCart() {
 
   const navigate = useNavigate();
 
-  // Load cart items from localStorage
+  // Load cart from localStorage
   useEffect(() => {
     const cartData = JSON.parse(localStorage.getItem('cart')) || [];
-    setCartItems(cartData);
+    const validItems = cartData.filter(item => item && item.price != null && item.qty != null);
+    setCartItems(validItems);
   }, []);
 
-  // Update localStorage whenever cartItems changes
-  useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cartItems));
-  }, [cartItems]);
-
-  // Socket.io for order status
+  // Socket listener for order status updates
   useEffect(() => {
     if (orderId) {
       socket.emit('join_order', orderId);
@@ -39,66 +37,47 @@ export default function MyCart() {
     return () => socket.off('orderStatusUpdate');
   }, [orderId]);
 
-  // Delete item
+  // Delete item from cart
   const handleDelete = (id) => {
     const updated = cartItems.filter((item) => item.id !== id);
     setCartItems(updated);
+    localStorage.setItem('cart', JSON.stringify(updated));
+    window.dispatchEvent(new Event("storage")); // Update Navbar immediately
   };
 
-  // Increase quantity
-  const handleIncrease = (index) => {
-    const newCart = [...cartItems];
-    newCart[index].qty = parseInt(newCart[index].qty) + 1;
-    setCartItems(newCart);
-  };
-
-  // Decrease quantity
-  const handleDecrease = (index) => {
-    const newCart = [...cartItems];
-    if (newCart[index].qty > 1) {
-      newCart[index].qty = parseInt(newCart[index].qty) - 1;
-    } else {
-      // Remove item if qty goes below 1
-      newCart.splice(index, 1);
-    }
-    setCartItems(newCart);
-  };
-
-  // Place Order
+  // Place order
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!address || !paymentMethod) return alert('Fill all fields');
+    if (!address || !paymentMethod) return alert('Please fill all fields.');
 
     const orderData = {
-      userId: '6663dea9247e2d518ab8dd33',
+      userId: '6663dea9247e2d518ab8dd33', // Replace with logged-in userId dynamically
       cartItems,
       address,
       paymentMethod
     };
 
     try {
-      const res = await axios.post(
-        'https://eatfit-ecwm.onrender.com/api/orders/createOrder',
-        orderData
-      );
+      const res = await axios.post('https://eatfit-ecwm.onrender.com/api/orders/createOrder', orderData);
       setOrderId(res.data.orderId);
       setOrderStatus('Order Placed');
       setIsOrderPlaced(true);
 
-      // Calculate distance
+      // ✅ Clear cart after successful order
+      localStorage.removeItem("cart");
+      setCartItems([]);
+      window.dispatchEvent(new Event("storage")); // ✅ Trigger Navbar update
+
+      // Get user location and calculate distance
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition((pos) => {
           const userCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-          const km = getDistanceFromLatLonInKm(
-            userCoords.lat,
-            userCoords.lon,
-            hotelCoords.lat,
-            hotelCoords.lon
-          );
+          const km = getDistanceFromLatLonInKm(userCoords.lat, userCoords.lon, hotelCoords.lat, hotelCoords.lon);
           setDistance(km.toFixed(2));
         });
       }
 
+      // Redirect to track order page
       setTimeout(() => navigate(`/track-order/${res.data.orderId}`), 2000);
     } catch (err) {
       console.error(err);
@@ -112,19 +91,25 @@ export default function MyCart() {
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
     const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.sin(dLat / 2) ** 2 +
       Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      Math.sin(dLon / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
+
   const deg2rad = (deg) => deg * (Math.PI / 180);
 
-  const totalPrice = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+  // Total price (safe)
+  const totalPrice = cartItems.reduce(
+    (sum, item) => sum + (item?.price || 0) * (item?.qty || 0),
+    0
+  );
 
   return (
     <div className="container mt-4">
       <h2>Your Cart</h2>
+
       {cartItems.length === 0 ? (
         <p>Your cart is empty.</p>
       ) : (
@@ -139,26 +124,10 @@ export default function MyCart() {
             </tr>
           </thead>
           <tbody>
-            {cartItems.map((item, i) => (
+            {cartItems.map((item, i) => item && (
               <tr key={i}>
                 <td>{item.name}</td>
-                <td>
-                  <div className="d-flex align-items-center">
-                    <button
-                      className="btn btn-sm btn-danger me-2"
-                      onClick={() => handleDecrease(i)}
-                    >
-                      -
-                    </button>
-                    <span>{item.qty}</span>
-                    <button
-                      className="btn btn-sm btn-success ms-2"
-                      onClick={() => handleIncrease(i)}
-                    >
-                      +
-                    </button>
-                  </div>
-                </td>
+                <td>{item.qty}</td>
                 <td>{item.size}</td>
                 <td>₹{item.price * item.qty}</td>
                 <td>
@@ -172,13 +141,16 @@ export default function MyCart() {
               </tr>
             ))}
             <tr>
-              <td colSpan="3" style={{ textAlign: 'right', fontWeight: 'bold' }}>Total:</td>
+              <td colSpan="3" style={{ textAlign: 'right', fontWeight: 'bold' }}>
+                Total:
+              </td>
               <td colSpan="2" style={{ fontWeight: 'bold' }}>₹{totalPrice}</td>
             </tr>
           </tbody>
         </table>
       )}
 
+      {/* Address Section */}
       <div className="mt-3">
         <textarea
           placeholder="Enter Address"
@@ -205,6 +177,7 @@ export default function MyCart() {
         </button>
       </div>
 
+      {/* Payment Section */}
       <div className="mt-3">
         <select
           className="form-select"
@@ -217,8 +190,12 @@ export default function MyCart() {
         </select>
       </div>
 
-      <button className="btn btn-success mt-3" onClick={handleSubmit}>Place Order</button>
+      {/* Place Order Button */}
+      <button className="btn btn-success mt-3" onClick={handleSubmit}>
+        Place Order
+      </button>
 
+      {/* Confirmation Popup */}
       {isOrderPlaced && (
         <div className="popup mt-3">
           <h4>Order ID: {orderId}</h4>
